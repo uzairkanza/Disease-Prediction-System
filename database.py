@@ -54,7 +54,7 @@ class Database:
             diabetes_pedigree REAL,
             age INTEGER,
             prediction TEXT,
-            prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            prediction_date TIMESTAMP DEFAULT (datetime('now','localtime'))
         )
         ''')
         
@@ -78,7 +78,7 @@ class Database:
             major_vessels INTEGER,
             thalassemia TEXT,
             prediction TEXT,
-            prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            prediction_date TIMESTAMP DEFAULT (datetime('now','localtime'))
         )
         ''')
         
