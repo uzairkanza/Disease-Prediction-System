@@ -49,6 +49,8 @@ with st.sidebar:
         default_index=0
     )
 
+
+
 # --- VERY IMPORTANT: Update session state correctly ---
 if sidebar_selection != st.session_state.selected:
     st.session_state.selected = sidebar_selection
@@ -601,17 +603,7 @@ def main():
         - Educational resources about disease prevention
         - Quick and easy to use interface
 
-        import base64
-
-        def download_db(db_path):
-            with open(db_path, "rb") as f:
-                bytes_data = f.read()
-                b64 = base64.b64encode(bytes_data).decode()
-                href = f'<a href="data:file/db;base64,{b64}" download="prediction_data.db">Download DB File</a>'
-                st.markdown(href, unsafe_allow_html=True)
-
-# In your Streamlit page:
-download_db("prediction_data.db")
+       
         
         
         """)
