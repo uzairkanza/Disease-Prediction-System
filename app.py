@@ -12,6 +12,9 @@ import requests
 import smtplib
 import os
 import pandas as pd
+import pytz
+from zoneinfo import ZoneInfo
+from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
 from email.mime.text import MIMEText
@@ -865,6 +868,7 @@ def main():
         """
         If you suspect you have diabetes or are at risk, consult a healthcare professional for proper diagnosis and treatment. 
         """)    
+        
             
         with tab3:
             st.subheader("View Your Diabetes Prediction History")
@@ -876,6 +880,11 @@ def main():
                 if st.button("Get Diabetes History"):
             # Fetch history from database
                     history_data = db.get_diabetes_predictions_by_email(history_email)
+
+                    # Convert UTC to IST (UTC+5:30)
+                    if not history_data.empty and 'prediction_date' in history_data.columns:
+                        history_data['prediction_date'] = pd.to_datetime(history_data['prediction_date'])
+                        history_data['prediction_date'] = history_data['prediction_date'].dt.tz_localize('UTC').dt.tz_convert('Asia/Kolkata')
 
                     if not history_data.empty:
                         # Count predictions
