@@ -899,11 +899,18 @@ def main():
                         st.success(f" Found {len(history_data)} diabetes records for {history_email}")
                         # Convert prediction_date to IST
                         if 'prediction_date' in history_data.columns:  
-                            ist = pytz.timezone('Asia/Kolkata')
                             history_data['prediction_date'] = pd.to_datetime(history_data['prediction_date']).dt.tz_localize('UTC').dt.tz_convert(ist)
-                            # Optional: format nicely
+
+                            # If the dates are naive (timezone-unaware), localize them to UTC first
+                            if history_data['prediction_date'].dt.tz is None:
+                                
+                                history_data['prediction_date'] = history_data['prediction_date'].dt.tz_localize('UTC')
+                                # Convert UTC to IST (Asia/Kolkata timezone)
+                            ist = pytz.timezone('Asia/Kolkata')
                             history_data['prediction_date'] = history_data['prediction_date'].dt.strftime('%Y-%m-%d %I:%M %p IST')
-                            st.dataframe(history_data)
+                            # Optional: format nicely to show it in 'YYYY-MM-DD HH:MM AM/PM IST' format
+                            history_data['prediction_date'] = history_data['prediction_date'].dt.strftime('%Y-%m-%d %I:%M %p IST')
+                        st.dataframe(history_data)
 
                 # CSV download
                         csv = history_data.to_csv(index=False)
