@@ -96,7 +96,7 @@ class Database:
             user_data.get('diabetes_pedigree', 0),
             user_data.get('age', 0),
             prediction,
-            date.now()
+            datetime.now().replace(microsecond=0)
         ))
         
         conn.commit()
@@ -130,7 +130,7 @@ class Database:
             user_data.get('major_vessels', 0),
             user_data.get('thalassemia', ''),
             prediction,
-            date.now()
+            datetime.now().replace(microsecond=0)
         ))
         
         conn.commit()
