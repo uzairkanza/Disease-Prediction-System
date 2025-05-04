@@ -49,8 +49,6 @@ with st.sidebar:
         default_index=0
     )
 
-
-
 # --- VERY IMPORTANT: Update session state correctly ---
 if sidebar_selection != st.session_state.selected:
     st.session_state.selected = sidebar_selection
@@ -602,8 +600,6 @@ def main():
         - Better understanding of your health status
         - Educational resources about disease prevention
         - Quick and easy to use interface
-
-       
         
         
         """)
