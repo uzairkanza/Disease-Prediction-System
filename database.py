@@ -2,42 +2,28 @@ import sqlite3
 import os
 import pandas as pd
 from datetime import datetime
-import pytz
-import streamlit as st
 import threading
+import streamlit as st
 
 class Database:
     def __init__(self, db_path='prediction_data.db'):
-        """Initialize database connection with proper path handling"""
+        """Initialize database connection with proper path handling for Streamlit Cloud"""
+        # Use absolute path for Streamlit Cloud compatibility
         self.db_path = os.path.abspath(db_path)
-        self.local_tz = pytz.timezone('Asia/Kolkata')  # Set your timezone
         self._local = threading.local()
         self.initialize_db()
     
     def get_connection(self):
-        """Get a thread-local database connection with datetime support"""
+        """Get a thread-local database connection with proper timeout handling"""
         if not hasattr(self._local, 'connection'):
             self._local.connection = sqlite3.connect(
                 self.db_path,
-                timeout=10,
-                detect_types=sqlite3.PARSE_DECLTYPES
+                timeout=10,  # Add timeout to handle concurrent access
+                detect_types=sqlite3.PARSE_DECLTYPES  # For proper datetime handling
             )
+            # Enable WAL mode for better concurrent access
             self._local.connection.execute("PRAGMA journal_mode=WAL")
-            # Register datetime converters
-            sqlite3.register_adapter(datetime, self._adapt_datetime)
         return self._local.connection
-    
-    def _adapt_datetime(self, dt):
-        """Convert datetime to ISO format for storage"""
-        if dt.tzinfo is not None:
-            dt = dt.astimezone(pytz.UTC)
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
-    
-    def _convert_datetime(self, timestamp):
-        """Convert stored timestamp to local timezone"""
-        if isinstance(timestamp, str):
-            timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
-        return timestamp.replace(tzinfo=pytz.UTC).astimezone(self.local_tz)
     
     def close_connection(self):
         """Close the thread-local database connection"""
@@ -45,14 +31,15 @@ class Database:
             try:
                 self._local.connection.close()
             except:
-                pass
+                pass  # Ensure thread doesn't crash on close error
             del self._local.connection
     
     def initialize_db(self):
-        """Initialize the database with required tables"""
+        """Initialize the database with required tables and proper datetime handling"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
+        # Create table for diabetes predictions with proper timestamp column
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS diabetes_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,10 +54,11 @@ class Database:
             diabetes_pedigree REAL,
             age INTEGER,
             prediction TEXT,
-            prediction_date TIMESTAMP
+            prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
         
+        # Create table for heart disease predictions with proper timestamp column
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS heart_disease_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,23 +78,24 @@ class Database:
             major_vessels INTEGER,
             thalassemia TEXT,
             prediction TEXT,
-            prediction_date TIMESTAMP
+            prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
+        
         conn.commit()
     
     def save_diabetes_prediction(self, user_data, prediction):
-        """Save diabetes prediction with current local time"""
+        """Save diabetes prediction to database with fresh timestamp"""
         try:
-            prediction_time = datetime.now(self.local_tz)
             conn = self.get_connection()
             cursor = conn.cursor()
             
+            # Use database's CURRENT_TIMESTAMP instead of Python datetime for consistency
             cursor.execute('''
             INSERT INTO diabetes_predictions 
             (name, sex, email, pregnancies, glucose, blood_pressure, skin_thickness, 
-            insulin, bmi, diabetes_pedigree, age, prediction, prediction_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            insulin, bmi, diabetes_pedigree, age, prediction)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 user_data.get('name', ''),
                 user_data.get('sex', ''),
@@ -119,9 +108,9 @@ class Database:
                 user_data.get('bmi', 0),
                 user_data.get('diabetes_pedigree', 0),
                 user_data.get('age', 0),
-                prediction,
-                prediction_time
+                prediction
             ))
+            
             conn.commit()
             return cursor.lastrowid
         except Exception as e:
@@ -130,18 +119,18 @@ class Database:
             raise
     
     def save_heart_disease_prediction(self, user_data, prediction):
-        """Save heart disease prediction with current local time"""
+        """Save heart disease prediction to database with fresh timestamp"""
         try:
-            prediction_time = datetime.now(self.local_tz)
             conn = self.get_connection()
             cursor = conn.cursor()
             
+            # Use database's CURRENT_TIMESTAMP for consistency
             cursor.execute('''
             INSERT INTO heart_disease_predictions 
             (name, email, age, sex, chest_pain_type, resting_bp, cholesterol, fasting_bs, 
             resting_ecg, max_heart_rate, exercise_angina, oldpeak, st_slope, major_vessels, 
-            thalassemia, prediction, prediction_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            thalassemia, prediction)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 user_data.get('name', ''),
                 user_data.get('email', ''),
@@ -158,9 +147,9 @@ class Database:
                 user_data.get('st_slope', ''),
                 user_data.get('major_vessels', 0),
                 user_data.get('thalassemia', ''),
-                prediction,
-                prediction_time
+                prediction
             ))
+            
             conn.commit()
             return cursor.lastrowid
         except Exception as e:
@@ -169,7 +158,7 @@ class Database:
             raise
     
     def get_all_diabetes_predictions(self):
-        """Get all diabetes predictions with formatted datetime"""
+        """Get all diabetes predictions with proper datetime handling"""
         conn = self.get_connection()
         query = """
         SELECT *, 
@@ -177,13 +166,10 @@ class Database:
         FROM diabetes_predictions 
         ORDER BY prediction_date DESC
         """
-        df = pd.read_sql_query(query, conn)
-        if not df.empty and 'prediction_date' in df.columns:
-            df['prediction_date'] = pd.to_datetime(df['prediction_date'])
-        return df
+        return pd.read_sql_query(query, conn)
     
     def get_all_heart_disease_predictions(self):
-        """Get all heart disease predictions with formatted datetime"""
+        """Get all heart disease predictions with proper datetime handling"""
         conn = self.get_connection()
         query = """
         SELECT *, 
@@ -191,13 +177,10 @@ class Database:
         FROM heart_disease_predictions 
         ORDER BY prediction_date DESC
         """
-        df = pd.read_sql_query(query, conn)
-        if not df.empty and 'prediction_date' in df.columns:
-            df['prediction_date'] = pd.to_datetime(df['prediction_date'])
-        return df
+        return pd.read_sql_query(query, conn)
     
     def get_diabetes_predictions_by_email(self, email):
-        """Get diabetes predictions for email with local timezone"""
+        """Get diabetes predictions for a specific email with fresh data"""
         conn = self.get_connection()
         query = """
         SELECT *, 
@@ -206,13 +189,10 @@ class Database:
         WHERE email = ? 
         ORDER BY prediction_date DESC
         """
-        df = pd.read_sql_query(query, conn, params=(email,))
-        if not df.empty and 'prediction_date' in df.columns:
-            df['prediction_date'] = pd.to_datetime(df['prediction_date'])
-        return df
+        return pd.read_sql_query(query, conn, params=(email,))
     
     def get_heart_disease_predictions_by_email(self, email):
-        """Get heart disease predictions for email with local timezone"""
+        """Get heart disease predictions for a specific email with fresh data"""
         conn = self.get_connection()
         query = """
         SELECT *, 
@@ -221,10 +201,12 @@ class Database:
         WHERE email = ? 
         ORDER BY prediction_date DESC
         """
-        df = pd.read_sql_query(query, conn, params=(email,))
-        if not df.empty and 'prediction_date' in df.columns:
-            df['prediction_date'] = pd.to_datetime(df['prediction_date'])
-        return df
+        return pd.read_sql_query(query, conn, params=(email,))
 
-# Singleton instance
+    def refresh_connection(self):
+        """Force a refresh of the database connection"""
+        self.close_connection()
+        return self.get_connection()
+
+# Create a singleton instance with proper path handling
 db = Database()
