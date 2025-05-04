@@ -588,6 +588,8 @@ def main():
         3. Enter your health parameters
         4. Get an instant prediction of your risk level
         5. Get instant result on your enterd email id with  prevenation and health tips
+
+        st.write("Current IST Time:", datetime.now(india_tz).strftime("%Y-%m-%d %H:%M:%S"))
         
         ### Features
         - **Disease Prediction**: Get predictions for diabetes and heart disease
