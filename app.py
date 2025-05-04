@@ -122,7 +122,6 @@ def load_models():
 # Try to load models
 try:
     diabetes_model, heart_model = load_models()
-    st.write("Current IST Time:", datetime.now(india_tz).strftime("%Y-%m-%d %H:%M:%S"))
 
     models_loaded = True
 except Exception:
