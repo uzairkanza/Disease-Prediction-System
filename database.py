@@ -5,7 +5,7 @@ from datetime import datetime
 import threading
 import pytz
 
-india_tz = pytz.timezone('Asia/kolkata')  # Use your local timezone
+india_tz = pytz.timezone('Asia/Kolkata')  # Use Indian Standard Time
 
 class Database:
     def __init__(self, db_path='prediction_data.db'):
@@ -31,14 +31,13 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
-        
-        # Create table for diabetes predictions
+        # ✅ Fixed: Add `sex` column and removed trailing comma
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS diabetes_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
+            sex TEXT,
             email TEXT,
-            prediction_date, 
             pregnancies INTEGER,
             glucose REAL,
             blood_pressure REAL,
@@ -47,17 +46,16 @@ class Database:
             bmi REAL,
             diabetes_pedigree REAL,
             age INTEGER,
-            prediction TEXT
+            prediction TEXT,
+            prediction_date TEXT
         )
         ''')
         
-        # Create table for heart disease predictions
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS heart_disease_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             email TEXT,
-            prediction_date,
             age INTEGER,
             sex TEXT,
             chest_pain_type TEXT,
@@ -71,17 +69,14 @@ class Database:
             st_slope TEXT,
             major_vessels INTEGER,
             thalassemia TEXT,
-            prediction TEXT
+            prediction TEXT,
+            prediction_date TEXT
         )
         ''')
         
         conn.commit()
     
     def save_diabetes_prediction(self, user_data, prediction):
-        from datetime import datetime
-        import pytz
-        # india_tz  = pytz.timezone('Asia/kolkata')
-
         conn = self.get_connection()
         cursor = conn.cursor()
         prediction_time = datetime.now(india_tz).strftime("%Y-%m-%d %H:%M:%S")
@@ -89,12 +84,12 @@ class Database:
         cursor.execute('''
         INSERT INTO diabetes_predictions 
         (name, sex, email, pregnancies, glucose, blood_pressure, skin_thickness, 
-        insulin, bmi, diabetes_pedigree, age, prediction, prediction_date)
+         insulin, bmi, diabetes_pedigree, age, prediction, prediction_date)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_data.get('name', ''),
+            user_data.get('sex', ''),
             user_data.get('email', ''),
-            prediction_time,
             user_data.get('pregnancies', 0),
             user_data.get('glucose', 0),
             user_data.get('blood_pressure', 0),
@@ -104,30 +99,28 @@ class Database:
             user_data.get('diabetes_pedigree', 0),
             user_data.get('age', 0),
             prediction,
-            user_data.get('sex', ''),  # 🛠 This field was missing earlier
+            prediction_time
         ))
 
         conn.commit()
         return cursor.lastrowid
     
     def save_heart_disease_prediction(self, user_data, prediction):
-        """Save heart disease prediction to database"""
         conn = self.get_connection()
         cursor = conn.cursor()
-
         prediction_time = datetime.now(india_tz).strftime("%Y-%m-%d %H:%M:%S")
 
         cursor.execute('''
         INSERT INTO heart_disease_predictions 
         (name, email, age, sex, chest_pain_type, resting_bp, cholesterol, fasting_bs, 
-        resting_ecg, max_heart_rate, exercise_angina, oldpeak, st_slope, major_vessels, 
-        thalassemia, prediction, prediction_date)
+         resting_ecg, max_heart_rate, exercise_angina, oldpeak, st_slope, major_vessels, 
+         thalassemia, prediction, prediction_date)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_data.get('name', ''),
             user_data.get('email', ''),
-            prediction_time ,
             user_data.get('age', 0),
+            user_data.get('sex', ''),
             user_data.get('chest_pain_type', ''),
             user_data.get('resting_bp', 0),
             user_data.get('cholesterol', 0),
@@ -140,65 +133,53 @@ class Database:
             user_data.get('major_vessels', 0),
             user_data.get('thalassemia', ''),
             prediction,
-            user_data.get('sex', ''),
+            prediction_time 
         ))
-        
+
         conn.commit()
         return cursor.lastrowid
     
     def get_all_diabetes_predictions(self):
-        """Get all diabetes predictions from database"""
         conn = self.get_connection()
         query = "SELECT * FROM diabetes_predictions ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn)
     
     def get_all_heart_disease_predictions(self):
-        """Get all heart disease predictions from database"""
         conn = self.get_connection()
         query = "SELECT * FROM heart_disease_predictions ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn)
     
     def get_diabetes_prediction_stats(self):
-        """Get statistics for diabetes predictions"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        
-        # Get the count of each prediction type
         cursor.execute('''
         SELECT prediction, COUNT(*) as count 
         FROM diabetes_predictions 
         GROUP BY prediction
         ''')
-        
         results = cursor.fetchall()
         return {result[0]: result[1] for result in results}
     
     def get_heart_disease_prediction_stats(self):
-        """Get statistics for heart disease predictions"""
         conn = self.get_connection()
         cursor = conn.cursor()
-        
-        # Get the count of each prediction type
         cursor.execute('''
         SELECT prediction, COUNT(*) as count 
         FROM heart_disease_predictions 
         GROUP BY prediction
         ''')
-        
         results = cursor.fetchall()
         return {result[0]: result[1] for result in results}
     
     def get_diabetes_predictions_by_email(self, email):
-        """Get diabetes predictions for a specific email"""
         conn = self.get_connection()
         query = "SELECT * FROM diabetes_predictions WHERE email = ? ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn, params=(email,))
     
     def get_heart_disease_predictions_by_email(self, email):
-        """Get heart disease predictions for a specific email"""
         conn = self.get_connection()
         query = "SELECT * FROM heart_disease_predictions WHERE email = ? ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn, params=(email,))
 
-# Create a singleton instance
-db = Database() 
+# ✅ Singleton instance
+db = Database()
