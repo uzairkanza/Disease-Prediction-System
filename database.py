@@ -93,7 +93,6 @@ class Database:
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_data.get('name', ''),
-            user_data.get('sex', ''),  # 🛠 This field was missing earlier
             user_data.get('email', ''),
             prediction_time,
             user_data.get('pregnancies', 0),
@@ -104,7 +103,8 @@ class Database:
             user_data.get('bmi', 0),
             user_data.get('diabetes_pedigree', 0),
             user_data.get('age', 0),
-            prediction
+            prediction,
+            user_data.get('sex', ''),  # 🛠 This field was missing earlier
         ))
 
         conn.commit()
@@ -128,7 +128,6 @@ class Database:
             user_data.get('email', ''),
             prediction_time ,
             user_data.get('age', 0),
-            user_data.get('sex', ''),
             user_data.get('chest_pain_type', ''),
             user_data.get('resting_bp', 0),
             user_data.get('cholesterol', 0),
@@ -140,7 +139,8 @@ class Database:
             user_data.get('st_slope', ''),
             user_data.get('major_vessels', 0),
             user_data.get('thalassemia', ''),
-            prediction
+            prediction,
+            user_data.get('sex', ''),
         ))
         
         conn.commit()
