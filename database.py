@@ -2,7 +2,6 @@ import sqlite3
 import os
 import pandas as pd
 from datetime import datetime
-import pytz
 import threading
 
 class Database:
@@ -23,11 +22,6 @@ class Database:
         if hasattr(self._local, 'connection'):
             self._local.connection.close()
             del self._local.connection
-
-    def get_current_ist_time(self):
-        """Get current time in IST timezone"""
-        ist = pytz.timezone('Asia/Kolkata')
-        return datetime.now(ist).replace(microsecond=0)
     
     def initialize_db(self):
         """Initialize the database with required tables"""
@@ -86,11 +80,12 @@ class Database:
         
         cursor.execute('''
         INSERT INTO diabetes_predictions 
-        (name, email, pregnancies, glucose, blood_pressure, skin_thickness, 
+        (name,sex, email, pregnancies, glucose, blood_pressure, skin_thickness, 
         insulin, bmi, diabetes_pedigree, age, prediction, prediction_date)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_data.get('name', ''),
+            user_data.get('sex', ''),
             user_data.get('email', ''),
             user_data.get('pregnancies', 0),
             user_data.get('glucose', 0),
@@ -101,7 +96,7 @@ class Database:
             user_data.get('diabetes_pedigree', 0),
             user_data.get('age', 0),
             prediction,
-            self.get_current_ist_time()
+            datetime.now().replace(microsecond=0)
         ))
         
         conn.commit()
@@ -135,7 +130,7 @@ class Database:
             user_data.get('major_vessels', 0),
             user_data.get('thalassemia', ''),
             prediction,
-            self.get_current_ist_time()
+            datetime.now().replace(microsecond=0)
         ))
         
         conn.commit()
@@ -158,6 +153,7 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
+        # Get the count of each prediction type
         cursor.execute('''
         SELECT prediction, COUNT(*) as count 
         FROM diabetes_predictions 
@@ -172,6 +168,7 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
         
+        # Get the count of each prediction type
         cursor.execute('''
         SELECT prediction, COUNT(*) as count 
         FROM heart_disease_predictions 
@@ -194,4 +191,4 @@ class Database:
         return pd.read_sql_query(query, conn, params=(email,))
 
 # Create a singleton instance
-db = Database()
+db = Database() 
