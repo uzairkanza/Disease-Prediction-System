@@ -10,6 +10,8 @@ import streamlit as st
 import time
 import requests
 import smtplib
+from datetime import datetime
+import pytz
 import os
 import pandas as pd
 import plotly.express as px
@@ -895,7 +897,13 @@ def main():
                             )
 
                         st.success(f" Found {len(history_data)} diabetes records for {history_email}")
-                        st.dataframe(history_data)
+                        # Convert prediction_date to IST
+                        if 'prediction_date' in history_data.columns:  
+                            ist = pytz.timezone('Asia/Kolkata')
+                            history_data['prediction_date'] = pd.to_datetime(history_data['prediction_date']).dt.tz_localize('UTC').dt.tz_convert(ist)
+                            # Optional: format nicely
+                            history_data['prediction_date'] = history_data['prediction_date'].dt.strftime('%Y-%m-%d %I:%M %p IST')
+                            st.dataframe(history_data)
 
                 # CSV download
                         csv = history_data.to_csv(index=False)
