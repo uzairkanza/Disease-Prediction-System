@@ -874,18 +874,14 @@ def main():
 
             if history_email and "@" in history_email and "." in history_email.split("@")[1]:
                 
+                
                 if st.button("Get Diabetes History"):
-                    
-        # Fetch history from database
-                     history_data = db.get_diabetes_predictions_by_email(history_email)
+                    history_data = db.get_diabetes_predictions_by_email(history_email)
 
-                     if not history_data.empty:
-                         
-            # Format datetime properly
-                         history_data['prediction_date'] = pd.to_datetime(history_data['prediction_date'])
-                         history_data['prediction_date'] = history_data['prediction_date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+                    if not history_data.empty: 
+                        history_data['prediction_date'] = pd.to_datetime(history_data['prediction_date'])
+                        history_data['prediction_date'] = history_data['prediction_date'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
-            # Count predictions
                         prediction_counts = history_data['prediction'].value_counts()
                         diabetes_count = prediction_counts.get(1, 0)
                         no_diabetes_count = prediction_counts.get(0, 0)
