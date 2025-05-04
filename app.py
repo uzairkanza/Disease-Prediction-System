@@ -936,6 +936,8 @@ def main():
 
                     else:
                         st.warning(f"⚠️ No diabetes prediction history found for {history_email}")
+                else:
+                    st.warning("something went wrong")
             else:
                 st.info("ℹ️ Please enter a valid email address to retrieve your prediction history.")
     
