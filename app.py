@@ -122,7 +122,6 @@ def load_models():
 # Try to load models
 try:
     diabetes_model, heart_model = load_models()
-
     models_loaded = True
 except Exception:
     models_loaded = False
@@ -589,7 +588,6 @@ def main():
         3. Enter your health parameters
         4. Get an instant prediction of your risk level
         5. Get instant result on your enterd email id with  prevenation and health tips
-
         
         ### Features
         - **Disease Prediction**: Get predictions for diabetes and heart disease
@@ -1472,6 +1470,19 @@ def main():
                 )
             
         with tab3:
+
+            # Admin key prompt
+            admin_key = st.text_input("Enter admin key to unlock download:", type="password")
+
+            # Check if key is correct and DB exists
+            if admin_key == "123456":  # 🔒 Replace with your real key
+                if os.path.exists("prediction_data.db"):
+                    with open("prediction_data.db", "rb") as f:
+                        st.download_button("Download Latest DB", f, file_name="prediction_data.db")
+                else:
+                    st.error("Database file not found.")
+            elif admin_key != "":
+                st.warning("Incorrect admin key.")
             st.write("Email: [uzerkanza05@gmail.com](mailto:uzerkanza05@gmail.com)")
             st.write(" ")
             
