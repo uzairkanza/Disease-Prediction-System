@@ -43,7 +43,7 @@ class Database:
             diabetes_pedigree REAL,
             age INTEGER,
             prediction TEXT,
-            prediction_date TIMESTAMP
+            prediction_date 
         )
         ''')
         
@@ -67,7 +67,7 @@ class Database:
             major_vessels INTEGER,
             thalassemia TEXT,
             prediction TEXT,
-            prediction_date TIMESTAMP
+            prediction_date 
         )
         ''')
         
