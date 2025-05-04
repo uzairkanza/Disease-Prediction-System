@@ -4,6 +4,8 @@ import pandas as pd
 from datetime import datetime
 import threading
 
+
+
 class Database:
     def __init__(self, db_path='prediction_data.db'):
         """Initialize database connection"""
@@ -77,6 +79,13 @@ class Database:
         """Save diabetes prediction to database"""
         conn = self.get_connection()
         cursor = conn.cursor()
+
+        from datetime import datetime
+        import pytz 
+        from zoneinfo import ZoneInfo  # Modern approach (Python 3.9+)
+
+        # Get current time in IST
+        ist_time = datetime.now(ZoneInfo('Asia/Kolkata')).replace(microsecond=0)
         
         cursor.execute('''
         INSERT INTO diabetes_predictions 
@@ -96,7 +105,7 @@ class Database:
             user_data.get('diabetes_pedigree', 0),
             user_data.get('age', 0),
             prediction,
-            datetime.now().replace(microsecond=0)
+            ist_time
         ))
         
         conn.commit()
@@ -181,7 +190,15 @@ class Database:
     def get_diabetes_predictions_by_email(self, email):
         """Get diabetes predictions for a specific email"""
         conn = self.get_connection()
-        query = "SELECT * FROM diabetes_predictions WHERE email = ? ORDER BY prediction_date DESC"
+        query = """
+        SELECT 
+            id, name, sex, email, pregnancies, glucose, blood_pressure, 
+            skin_thickness, insulin, bmi, diabetes_pedigree, age, prediction,
+            datetime(prediction_date, 'localtime') as prediction_date
+        FROM diabetes_predictions 
+        WHERE email = ? 
+        ORDER BY prediction_date DESC
+        """
         return pd.read_sql_query(query, conn, params=(email,))
     
     def get_heart_disease_predictions_by_email(self, email):
