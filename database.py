@@ -6,64 +6,33 @@ import threading
 
 class Database:
     def __init__(self, db_path='prediction_data.db'):
+        """Initialize database connection"""
         self.db_path = db_path
         self._local = threading.local()
         self.initialize_db()
-
+    
     def get_connection(self):
+        """Get a thread-local database connection"""
         if not hasattr(self._local, 'connection'):
-            self._local.connection = sqlite3.connect(
-                self.db_path,
-                detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
-            )
-            self._local.connection.row_factory = sqlite3.Row
+            self._local.connection = sqlite3.connect(self.db_path)
         return self._local.connection
-
+    
     def close_connection(self):
+        """Close the thread-local database connection"""
         if hasattr(self._local, 'connection'):
             self._local.connection.close()
             del self._local.connection
-
+    
     def initialize_db(self):
+        """Initialize the database with required tables"""
         conn = self.get_connection()
         cursor = conn.cursor()
-
-        # Create schema_version table
-        cursor.execute('''
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY
-        )
-        ''')
-        conn.commit()
-
-        current_version = self.get_schema_version()
-        if current_version < 1:
-            self._migrate_to_v1()
-        if current_version < 2:
-            self._migrate_to_v2()
-
-    def get_schema_version(self):
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT MAX(version) FROM schema_version")
-        row = cursor.fetchone()
-        return row[0] if row and row[0] is not None else 0
-
-    def _set_schema_version(self, version):
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO schema_version (version) VALUES (?)", (version,))
-        conn.commit()
-
-    def _migrate_to_v1(self):
-        conn = self.get_connection()
-        cursor = conn.cursor()
-
+        
+        # Create table for diabetes predictions
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS diabetes_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
-            sex TEXT,
             email TEXT,
             pregnancies INTEGER,
             glucose REAL,
@@ -74,10 +43,11 @@ class Database:
             diabetes_pedigree REAL,
             age INTEGER,
             prediction TEXT,
-            prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            prediction_date TIMESTAMP
         )
         ''')
-
+        
+        # Create table for heart disease predictions
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS heart_disease_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,25 +67,21 @@ class Database:
             major_vessels INTEGER,
             thalassemia TEXT,
             prediction TEXT,
-            prediction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            prediction_date TIMESTAMP
         )
         ''')
-
+        
         conn.commit()
-        self._set_schema_version(1)
-
-    def _migrate_to_v2(self):
-        # Example: In future migrations, you can add new columns or indexes here
-        self._set_schema_version(2)
-
+    
     def save_diabetes_prediction(self, user_data, prediction):
+        """Save diabetes prediction to database"""
         conn = self.get_connection()
         cursor = conn.cursor()
-
+        
         cursor.execute('''
         INSERT INTO diabetes_predictions 
-        (name, sex, email, pregnancies, glucose, blood_pressure, skin_thickness, 
-         insulin, bmi, diabetes_pedigree, age, prediction)
+        (name,sex, email, pregnancies, glucose, blood_pressure, skin_thickness, 
+        insulin, bmi, diabetes_pedigree, age, prediction, prediction_date)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_data.get('name', ''),
@@ -129,22 +95,24 @@ class Database:
             user_data.get('bmi', 0),
             user_data.get('diabetes_pedigree', 0),
             user_data.get('age', 0),
-            prediction
+            prediction,
+            datetime.now().replace(microsecond=0)
         ))
-
+        
         conn.commit()
         return cursor.lastrowid
-
+    
     def save_heart_disease_prediction(self, user_data, prediction):
+        """Save heart disease prediction to database"""
         conn = self.get_connection()
         cursor = conn.cursor()
-
+        
         cursor.execute('''
         INSERT INTO heart_disease_predictions 
         (name, email, age, sex, chest_pain_type, resting_bp, cholesterol, fasting_bs, 
-         resting_ecg, max_heart_rate, exercise_angina, oldpeak, st_slope, major_vessels, 
-         thalassemia, prediction)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        resting_ecg, max_heart_rate, exercise_angina, oldpeak, st_slope, major_vessels, 
+        thalassemia, prediction, prediction_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             user_data.get('name', ''),
             user_data.get('email', ''),
@@ -161,53 +129,66 @@ class Database:
             user_data.get('st_slope', ''),
             user_data.get('major_vessels', 0),
             user_data.get('thalassemia', ''),
-            prediction
+            prediction,
+            datetime.now().replace(microsecond=0)
         ))
-
+        
         conn.commit()
         return cursor.lastrowid
-
+    
     def get_all_diabetes_predictions(self):
+        """Get all diabetes predictions from database"""
         conn = self.get_connection()
         query = "SELECT * FROM diabetes_predictions ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn)
-
+    
     def get_all_heart_disease_predictions(self):
+        """Get all heart disease predictions from database"""
         conn = self.get_connection()
         query = "SELECT * FROM heart_disease_predictions ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn)
-
+    
     def get_diabetes_prediction_stats(self):
+        """Get statistics for diabetes predictions"""
         conn = self.get_connection()
         cursor = conn.cursor()
+        
+        # Get the count of each prediction type
         cursor.execute('''
         SELECT prediction, COUNT(*) as count 
         FROM diabetes_predictions 
         GROUP BY prediction
         ''')
+        
         results = cursor.fetchall()
         return {result[0]: result[1] for result in results}
-
+    
     def get_heart_disease_prediction_stats(self):
+        """Get statistics for heart disease predictions"""
         conn = self.get_connection()
         cursor = conn.cursor()
+        
+        # Get the count of each prediction type
         cursor.execute('''
         SELECT prediction, COUNT(*) as count 
         FROM heart_disease_predictions 
         GROUP BY prediction
         ''')
+        
         results = cursor.fetchall()
         return {result[0]: result[1] for result in results}
-
+    
     def get_diabetes_predictions_by_email(self, email):
+        """Get diabetes predictions for a specific email"""
         conn = self.get_connection()
         query = "SELECT * FROM diabetes_predictions WHERE email = ? ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn, params=(email,))
-
+    
     def get_heart_disease_predictions_by_email(self, email):
+        """Get heart disease predictions for a specific email"""
         conn = self.get_connection()
         query = "SELECT * FROM heart_disease_predictions WHERE email = ? ORDER BY prediction_date DESC"
         return pd.read_sql_query(query, conn, params=(email,))
 
-# Singleton instance
-db = Database()
+# Create a singleton instance
+db = Database() 
